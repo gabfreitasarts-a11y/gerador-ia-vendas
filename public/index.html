@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Legendas Com IA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        .app-wrapper {
+            background: var(--surface);
+            width: 100%; max-width: 600px; border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+            overflow: hidden; border: 1px solid var(--border); position: relative;
+        }
+        .app-blur { filter: blur(5px); pointer-events: none; }
+        .header {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            padding: 40px; text-align: center; color: white;
+        }
+        .header h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 5px; }
+        
+        /* Bloqueio */
+        #lock-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px);
+            display: none; flex-direction: column; justify-content: center;
+            align-items: center; z-index: 100; color: white; text-align: center; padding: 20px;
+        }
+        .lock-card { background: white; color: #1e293b; padding: 30px; border-radius: 20px; width: 100%; max-width: 400px; }
+        .btn-buy { display: block; background: #10b981; color: white; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: 800; margin: 20px 0; }
+        
+        /* Form */
+        .content-body { padding: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569; text-transform: uppercase; }
+        input, select { width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
+        .upload-box { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; cursor: pointer; border-radius: 16px; background: #f8fafc; }
+        #preview-img { max-width: 100%; max-height: 200px; display: none; margin-top: 15px; border-radius: 12px; margin-left: auto; margin-right: auto; }
+        
+        button[type="submit"] { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 700; cursor: pointer; font-size: 1rem; }
+        
+        /* Result */
+        #result-area { margin-top: 30px; display: none; background: #f1f5f9; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; white-space: pre-wrap; }
+        .spinner { display: none; width: 20px; height: 20px; border: 3px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { to {transform: rotate(360deg);} }
+        
+        /* Login */
+        .password-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; }
+        .btn-login { background: #334155; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="app-wrapper" id="app-container">
+        
+        <div id="lock-screen">
+            <div class="lock-card">
+                <h2>🔒 Acesso Limitado</h2>
+                <p style="color: #64748b; font-size: 0.9rem; margin-top:5px;">Assine para gerar legendas ilimitadas.</p>
+                <a href="https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=d97b79b8d6de410d91e8468a0dfb7bdc" target="_blank" class="btn-buy">DESBLOQUEAR (R$ 19,90)</a>
+                <div>
+                    <p style="font-size: 0.8rem;">Já tem senha?</p>
+                    <input type="password" id="passwordInput" class="password-input" placeholder="Senha VIP">
+                    <button class="btn-login" onclick="checkLogin()">Entrar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="header">
+            <h1>Gerador de Legendas Com IA</h1>
+            <p>Crie conteúdo viral em segundos</p>
+        </div>
+
+        <div class="content-body">
+            <form id="generator-form">
+                <div class="form-group">
+                    <label>1. Imagem do Post</label>
+                    <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                        <span>📸 Carregar Foto</span>
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;" required>
+                    </div>
+                    <img id="preview-img" src="">
+                </div>
+
+                <div class="form-group">
+                    <label>2. Tamanho da Legenda</label>
+                    <select id="tamanho">
+                        <option value="media">Média (Padrão)</option>
+                        <option value="curta">Curta (Impacto Rápido)</option>
+                        <option value="longa">Longa (Storytelling)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>3. Nicho</label>
+                    <input type="text" id="nicho" placeholder="Ex: Fitness, Moda, Marketing..." required>
+                </div>
+
+                <div class="form-group">
+                    <label>4. Objetivo do Post</label>
+                    <select id="objetivo">
+                        <option value="Venda Direta">💰 Venda Direta / Promoção</option>
+                        <option value="Conteúdo Educativo">📚 Conteúdo Educativo</option>
+                        <option value="Engajamento">💬 Engajamento / Perguntas</option>
+                        <option value="Viral">🚀 Viral / Compartilhável</option>
+                        <option value="Autoridade">🏆 Construção de Autoridade</option>
+                        <option value="Conexão">❤️ Conexão / Lifestyle</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>5. Tom de Voz</label>
+                    <select id="tom">
+                        <option value="Profissional">Profissional e Sério</option>
+                        <option value="Divertido">Divertido e Leve</option>
+                        <option value="Urgente">Urgente (Escassez)</option>
+                        <option value="Inspirador">Inspirador e Motivacional</option>
+                        <option value="Polêmico">Polêmico (Opinião Forte)</option>
+                        <option value="Minimalista">Minimalista e Direto</option>
+                        <option value="Luxuoso">Luxuoso e Sofisticado</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="btnSubmit">
+                    <div class="spinner" id="loader"></div>
+                    <span id="btnText">Gerar Legenda</span>
+                </button>
+            </form>
+
+            <div id="result-area">
+                <div id="output-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAÇÕES
+        const SENHA_MESTRA = "VIP2025";
+        const MAX_FREE_TRIES = 1;
+        const lockScreen = document.getElementById('lock-screen');
+        const passwordInput = document.getElementById('passwordInput');
+
+        // BLOQUEIO
+        function checkAccess() {
+            const usedCount = parseInt(localStorage.getItem('gerador_usage_count') || 0);
+            const isVip = localStorage.getItem('gerador_is_vip') === 'true';
+            if (!isVip && usedCount >= MAX_FREE_TRIES) lockScreen.style.display = 'flex';
+            else lockScreen.style.display = 'none';
+        }
+        function checkLogin() {
+            if (passwordInput.value === SENHA_MESTRA) {
+                localStorage.setItem('gerador_is_vip', 'true');
+                checkAccess();
+                alert("VIP Liberado!");
+            } else alert("Senha incorreta");
+        }
+        checkAccess();
+
+        // FORMULÁRIO
+        const form = document.getElementById('generator-form');
+        const fileInput = document.getElementById('fileInput');
+        const previewImg = document.getElementById('preview-img');
+        const btnSubmit = document.getElementById('btnSubmit');
+        const btnText = document.getElementById('btnText');
+        const loader = document.getElementById('loader');
+        const resultArea = document.getElementById('result-area');
+        const outputText = document.getElementById('output-text');
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                previewImg.src = URL.createObjectURL(file);
+                previewImg.style.display = 'block';
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usedCount = parseInt(localStorage.getItem('gerador_usage_count') || 0);
+            const isVip = localStorage.getItem('gerador_is_vip') === 'true';
+
+            if (!isVip && usedCount >= MAX_FREE_TRIES) { checkAccess(); return; }
+
+            btnSubmit.disabled = true; btnText.textContent = 'Aguarde...'; loader.style.display = 'block'; resultArea.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('nicho', document.getElementById('nicho').value);
+            formData.append('objetivo', document.getElementById('objetivo').value);
+            formData.append('tom', document.getElementById('tom').value);
+            formData.append('tamanho', document.getElementById('tamanho').value);
+
+            try {
+                // AJUSTE FEITO: Agora usa apenas o caminho relativo
+                const response = await fetch('/api/gerar-legenda', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    outputText.textContent = data.legenda;
+                    resultArea.style.display = 'block';
+                    if (!isVip) localStorage.setItem('gerador_usage_count', usedCount + 1);
+                } else alert("Erro: " + data.error);
+            } catch (error) { alert("Erro de conexão."); } 
+            finally {
+                btnSubmit.disabled = false; btnText.textContent = 'Gerar Legenda'; loader.style.display = 'none';
+                if (!isVip) checkAccess();
+            }
+        });
+    </script>
+</body>
+</html>
